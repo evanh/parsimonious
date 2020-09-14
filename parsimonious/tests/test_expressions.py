@@ -1,8 +1,6 @@
 #coding=utf-8
-from unittest import TestCase
-
-from nose.tools import eq_, ok_, assert_raises
 from six import text_type
+from unittest import TestCase
 
 from parsimonious.exceptions import ParseError, IncompleteParseError
 from parsimonious.expressions import (Literal, Regex, Sequence, OneOf, Not,
@@ -32,24 +30,24 @@ class LengthTests(TestCase):
     def test_regex(self):
         len_eq(Literal('hello').match('ehello', 1), 5)  # simple
         len_eq(Regex('hello*').match('hellooo'), 7)  # *
-        assert_raises(ParseError, Regex('hello*').match, 'goodbye')  # no match
+        self.assertRaises(ParseError, Regex('hello*').match, 'goodbye')  # no match
         len_eq(Regex('hello', ignore_case=True).match('HELLO'), 5)
 
     def test_sequence(self):
         len_eq(Sequence(Regex('hi*'), Literal('lo'), Regex('.ingo')).match('hiiiilobingo1234'),
             12)  # succeed
-        assert_raises(ParseError, Sequence(Regex('hi*'), Literal('lo'), Regex('.ingo')).match, 'hiiiilobing')  # don't
+        self.assertRaises(ParseError, Sequence(Regex('hi*'), Literal('lo'), Regex('.ingo')).match, 'hiiiilobing')  # don't
         len_eq(Sequence(Regex('hi*')).match('>hiiii', 1),
             5)  # non-0 pos
 
     def test_one_of(self):
         len_eq(OneOf(Literal('aaa'), Literal('bb')).match('aaa'), 3)  # first alternative
         len_eq(OneOf(Literal('aaa'), Literal('bb')).match('bbaaa'), 2)  # second
-        assert_raises(ParseError, OneOf(Literal('aaa'), Literal('bb')).match, 'aa')  # no match
+        self.assertRaises(ParseError, OneOf(Literal('aaa'), Literal('bb')).match, 'aa')  # no match
 
     def test_not(self):
         len_eq(Not(Regex('.')).match(''), 0)  # match
-        assert_raises(ParseError, Not(Regex('.')).match, 'Hi')  # don't
+        self.assertRaises(ParseError, Not(Regex('.')).match, 'Hi')  # don't
 
     def test_optional(self):
         len_eq(Sequence(Optional(Literal('a')), Literal('b')).match('b'), 1)  # contained expr fails
@@ -68,7 +66,7 @@ class LengthTests(TestCase):
         len_eq(OneOrMore(Literal('b')).match('b'), 1)  # one
         len_eq(OneOrMore(Literal('b')).match('bbb'), 3)  # more
         len_eq(OneOrMore(Literal('b'), min=3).match('bbb'), 3)  # with custom min; success
-        assert_raises(ParseError, OneOrMore(Literal('b'), min=3).match, 'bb')  # with custom min; failure
+        self.assertRaises(ParseError, OneOrMore(Literal('b'), min=3).match, 'bb')  # with custom min; failure
         len_eq(OneOrMore(Regex('^')).match('bb'), 0)  # attempt infinite loop
 
 
@@ -82,49 +80,49 @@ class TreeTests(TestCase):
     def test_simple_node(self):
         """Test that leaf expressions like ``Literal`` make the right nodes."""
         h = Literal('hello', name='greeting')
-        eq_(h.match('hello'), Node(h, 'hello', 0, 5))
+        assert h.match('hello') == Node(h, 'hello', 0, 5)
 
     def test_sequence_nodes(self):
         """Assert that ``Sequence`` produces nodes with the right children."""
         s = Sequence(Literal('heigh', name='greeting1'),
                      Literal('ho',    name='greeting2'), name='dwarf')
         text = 'heighho'
-        eq_(s.match(text), Node(s, text, 0, 7, children=
+        assert s.match(text) == Node(s, text, 0, 7, children=
                                 [Node(s.members[0], text, 0, 5),
-                                 Node(s.members[1], text, 5, 7)]))
+                                 Node(s.members[1], text, 5, 7)])
 
     def test_one_of(self):
         """``OneOf`` should return its own node, wrapping the child that succeeds."""
         o = OneOf(Literal('a', name='lit'), name='one_of')
         text = 'aa'
-        eq_(o.match(text), Node(o, text, 0, 1, children=[
-                                Node(o.members[0], text, 0, 1)]))
+        assert o.match(text) == Node(o, text, 0, 1, children=[
+                                Node(o.members[0], text, 0, 1)])
 
     def test_optional(self):
         """``Optional`` should return its own node wrapping the succeeded child."""
         expr = Optional(Literal('a', name='lit'), name='opt')
 
         text = 'a'
-        eq_(expr.match(text), Node(expr, text, 0, 1, children=[
-                                   Node(expr.members[0], text, 0, 1)]))
+        assert expr.match(text) == Node(expr, text, 0, 1, children=[
+                                   Node(expr.members[0], text, 0, 1)])
 
         # Test failure of the Literal inside the Optional; the
         # LengthTests.test_optional is ambiguous for that.
         text = ''
-        eq_(expr.match(text), Node(expr, text, 0, 0))
+        assert expr.match(text) == Node(expr, text, 0, 0)
 
     def test_zero_or_more_zero(self):
         """Test the 0 case of ``ZeroOrMore``; it should still return a node."""
         expr = ZeroOrMore(Literal('a'), name='zero')
         text = ''
-        eq_(expr.match(text), Node(expr, text, 0, 0))
+        assert expr.match(text) == Node(expr, text, 0, 0)
 
     def test_one_or_more_one(self):
         """Test the 1 case of ``OneOrMore``; it should return a node with a child."""
         expr = OneOrMore(Literal('a', name='lit'), name='one')
         text = 'a'
-        eq_(expr.match(text), Node(expr, text, 0, 1, children=[
-                                   Node(expr.members[0], text, 0, 1)]))
+        assert expr.match(text) == Node(expr, text, 0, 1, children=[
+                                   Node(expr.members[0], text, 0, 1)])
 
     # Things added since Grammar got implemented are covered in integration
     # tests in test_grammar.
@@ -142,9 +140,9 @@ class ParseTests(TestCase):
         """
         expr = OneOrMore(Literal('a', name='lit'), name='more')
         text = 'aa'
-        eq_(expr.parse(text), Node(expr, text, 0, 2, children=[
+        assert expr.parse(text) == Node(expr, text, 0, 2, children=[
                                    Node(expr.members[0], text, 0, 1),
-                                   Node(expr.members[0], text, 1, 2)]))
+                                   Node(expr.members[0], text, 1, 2)])
 
 
 class ErrorReportingTests(TestCase):
@@ -168,10 +166,10 @@ class ErrorReportingTests(TestCase):
         try:
             grammar.parse(text)
         except ParseError as error:
-            eq_(error.pos, 6)
-            eq_(error.expr, grammar['close_parens'])
-            eq_(error.text, text)
-            eq_(text_type(error), "Rule 'close_parens' didn't match at '!!' (line 1, column 7).")
+            assert error.pos == 6
+            assert error.expr == grammar['close_parens']
+            assert error.text == text
+            assert text_type(error) == "Rule 'close_parens' didn't match at '!!' (line 1, column 7)."
 
     def test_rewinding(self):
         """Make sure rewinding the stack and trying an alternative (which
@@ -195,9 +193,9 @@ class ErrorReportingTests(TestCase):
         try:
             grammar.parse(text)
         except ParseError as error:
-            eq_(error.pos, 8)
-            eq_(error.expr, grammar['bork'])
-            eq_(error.text, text)
+            assert error.pos == 8
+            assert error.expr == grammar['bork']
+            assert error.text == text
 
     def test_no_named_rule_succeeding(self):
         """Make sure ParseErrors have sane printable representations even if we
@@ -206,9 +204,9 @@ class ErrorReportingTests(TestCase):
         try:
             grammar.parse('snork')
         except ParseError as error:
-            eq_(error.pos, 0)
-            eq_(error.expr, grammar['bork'])
-            eq_(error.text, 'snork')
+            assert error.pos == 0
+            assert error.expr == grammar['bork']
+            assert error.text == 'snork'
 
     def test_parse_with_leftovers(self):
         """Make sure ``parse()`` reports where we started failing to match,
@@ -217,7 +215,7 @@ class ErrorReportingTests(TestCase):
         try:
             grammar.parse('chitty bangbang')
         except IncompleteParseError as error:
-            eq_(text_type(error), u"Rule 'sequence' matched in its entirety, but it didn't consume all the text. The non-matching portion of the text begins with 'bang' (line 1, column 12).")
+            assert text_type(error), u"Rule 'sequence' matched in its entirety, but it didn't consume all the text. The non-matching portion of the text begins with 'bang' (line 1 == column 12)."
 
     def test_favoring_named_rules(self):
         """Named rules should be used in error messages in favor of anonymous
@@ -227,7 +225,7 @@ class ErrorReportingTests(TestCase):
         try:
             grammar.parse('burp')
         except ParseError as error:
-            eq_(text_type(error), u"Rule 'starts_with_a' didn't match at 'burp' (line 1, column 1).")
+            assert text_type(error), u"Rule 'starts_with_a' didn't match at 'burp' (line 1 == column 1)."
 
     def test_line_and_column(self):
         """Make sure we got the line and column computation right."""
@@ -241,7 +239,7 @@ class ErrorReportingTests(TestCase):
         except ParseError as error:
             # TODO: Right now, this says "Rule <Literal "\n" at 0x4368250432>
             # didn't match". That's not the greatest. Fix that, then fix this.
-            ok_(text_type(error).endswith(r"""didn't match at 'GOO' (line 2, column 4)."""))
+            assert text_type(error).endswith(r"""didn't match at 'GOO' (line 2, column 4).""")
 
 
 class RepresentationTests(TestCase):
@@ -267,20 +265,16 @@ class RepresentationTests(TestCase):
 
         """
         # ZeroOrMore
-        eq_(text_type(Grammar('foo = "bar" ("baz" "eggs")* "spam"')),
-            u'foo = "bar" ("baz" "eggs")* "spam"')
+        assert text_type(Grammar('foo = "bar" ("baz" "eggs")* "spam"')) == u'foo = "bar" ("baz" "eggs")* "spam"'
 
         # OneOf
-        eq_(text_type(Grammar('foo = "bar" ("baz" / "eggs") "spam"')),
-            u'foo = "bar" ("baz" / "eggs") "spam"')
+        assert text_type(Grammar('foo = "bar" ("baz" / "eggs") "spam"')) == u'foo = "bar" ("baz" / "eggs") "spam"'
 
         # Lookahead
-        eq_(text_type(Grammar('foo = "bar" &("baz" "eggs") "spam"')),
-            u'foo = "bar" &("baz" "eggs") "spam"')
+        assert text_type(Grammar('foo = "bar" &("baz" "eggs") "spam"')) == u'foo = "bar" &("baz" "eggs") "spam"'
 
         # Multiple sequences
-        eq_(text_type(Grammar('foo = ("bar" "baz") / ("baff" "bam")')),
-            u'foo = ("bar" "baz") / ("baff" "bam")')
+        assert text_type(Grammar('foo = ("bar" "baz") / ("baff" "bam")')) == u'foo = ("bar" "baz") / ("baff" "bam")'
 
     def test_unicode_surrounding_parens(self):
         """
@@ -288,8 +282,7 @@ class RepresentationTests(TestCase):
         right-hand side of an expression (as they're unnecessary).
 
         """
-        eq_(text_type(Grammar('foo = ("foo" ("bar" "baz"))')),
-            u'foo = "foo" ("bar" "baz")')
+        assert text_type(Grammar('foo = ("foo" ("bar" "baz"))')) == u'foo = "foo" ("bar" "baz")'
 
 
 class SlotsTests(TestCase):
@@ -315,5 +308,5 @@ class SlotsTests(TestCase):
                 self.smoo = 'smoo'
 
         smoo = Smoo()
-        eq_(smoo.__dict__, {})  # has a __dict__ but with no smoo in it
-        eq_(smoo.smoo, 'smoo')  # The smoo attr ended up in a slot.
+        assert smoo.__dict__ == {}  # has a __dict__ but with no smoo in it
+        assert smoo.smoo == 'smoo'  # The smoo attr ended up in a slot.
